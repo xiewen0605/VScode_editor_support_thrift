@@ -51,19 +51,20 @@ var genPosByShift = function (pos, shift) {
 };
 function activate(context) {
     var _this = this;
-    // 初始化client
-    console.log('dev-thrift-web-support activated!');
+    // 初始化client 激活扩展时，创建了一个 Web Worker，该 Worker 运行语言服务器脚本 thrift-language-server.js
+    console.log('激活了');
     var serverMain = vscode_1.Uri.joinPath(context.extensionUri, 'dist/thrift-language-server.js');
     var worker = new Worker(serverMain.toString(true));
+    // 初始化语言服务器客户端
     var clientOptions = {
         documentSelector: [{ language: 'thrift' }],
     };
     var client = new browser_1.LanguageClient('thrift-web-support', 'LSP thrift-web-support', clientOptions, worker);
+    // 获取所选择的text内容，以及位置
     client.onRequest('customRequest/getSelectedText', function () {
         var editor = vscode_1.window.activeTextEditor;
         var document = editor === null || editor === void 0 ? void 0 : editor.document;
         var selection = editor === null || editor === void 0 ? void 0 : editor.selection;
-        console.log(123, selection);
         return {
             text: document === null || document === void 0 ? void 0 : document.getText(selection),
             position: {
@@ -72,6 +73,7 @@ function activate(context) {
             },
         };
     });
+    // 获取光标位置的单词
     client.onRequest('customRequest/getWordByPosition', function () {
         var editor = vscode_1.window.activeTextEditor;
         var document = editor === null || editor === void 0 ? void 0 : editor.document;
@@ -99,6 +101,7 @@ function activate(context) {
             prevWord: prevWord,
         };
     });
+    // 通过文件路径读取文件内容
     client.onRequest('customRequest/getContentByPath', function (path) { return __awaiter(_this, void 0, void 0, function () {
         var fileUri;
         return __generator(this, function (_a) {
@@ -110,6 +113,7 @@ function activate(context) {
             }
         });
     }); });
+    // 查找所有 Thrift 文件
     client.onRequest('customRequest/getAllFileUri', function () { return __awaiter(_this, void 0, void 0, function () {
         var files;
         return __generator(this, function (_a) {
@@ -121,6 +125,7 @@ function activate(context) {
             }
         });
     }); });
+    // 启动语言服务器客户端
     client.start();
 }
 

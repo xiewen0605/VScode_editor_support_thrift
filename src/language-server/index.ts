@@ -162,6 +162,7 @@ connection.onDefinition(async (params) => {
 //   return suggestions;
 // });
 
+// 查找引用
 connection.onReferences(async (params) => {
   const { position, textDocument } = params;
   const fileRootPath = textDocument.uri.split("?")[0];
@@ -238,6 +239,8 @@ connection.onReferences(async (params) => {
   }
 });
 
+
+// 文档格式化
 connection.onDocumentFormatting(async (params) => {
   // 可更改格式化快捷键   以及在client主动发起格式化请求 editor.document.format();
   // [
@@ -249,7 +252,7 @@ connection.onDocumentFormatting(async (params) => {
   // ]
   const document = documents.get(params.textDocument.uri);
   const selectedText = await connection.sendRequest('customRequest/getSelectedText');
-  console.log(123, selectedText);
+  console.log('光标所选文字', selectedText);
   
   if (document) {
     return formatDocument(document);
@@ -257,6 +260,7 @@ connection.onDocumentFormatting(async (params) => {
   return [];
 });
 
+// 解析thrift文件
 function formatDocument(document: TextDocument): TextEdit[] {
   const textEdits: TextEdit[] = [];
   const fullText = document.getText();
@@ -266,9 +270,11 @@ function formatDocument(document: TextDocument): TextEdit[] {
   );
 
   const thrift = ThriftData.fromString(fullText);
+  console.log(thrift)
   const fmt = new ThriftFormatter(thrift);
   fmt.option(newOption({ keepComment: true, alignByAssign: true }));
   const formattedText = fmt.format();
+  console.log(fmt,formattedText)
   textEdits.push(TextEdit.replace(fullRange, formattedText));
   return textEdits;
 }

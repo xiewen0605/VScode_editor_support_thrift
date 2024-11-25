@@ -23,6 +23,8 @@ export type GetReturnType<original> = original extends (
   ? returnType
   : never;
 
+// 筛选出 AST 节点中 name.value 与给定单词 word 匹配的节点。
+// 查找 Thrift 中指定单词（如类型名、变量名）相关的 AST 节点。
 export const wordNodeFilter =
   (word: string) => (item: ThriftStatement, index: number) => {
     if (
@@ -34,6 +36,8 @@ export const wordNodeFilter =
     }
   };
 
+// 筛选出 Thrift 文件中所有的 include 语句节点。
+// 用于收集 Thrift 文件中的 include 依赖关系。
 export const includeNodeFilter =
   () => (item: ThriftStatement, index: number) => {
     if (item.type === SyntaxType.IncludeDefinition) {
@@ -41,8 +45,15 @@ export const includeNodeFilter =
     }
   };
 
+// 将一基的行号或位置转换为零基，方便与程序中的索引对齐。
+// AST 操作或文档操作时，通常需要零基索引。
 export const genZeroBasedNum = (num: number) => num - 1;
 
+
+// 将相对路径解析为绝对路径。
+// 处理 .. 和 . 等相对路径符号。
+// 返回基于 basePath 计算出的完整路径。
+// 处理 Thrift 文件中的 include 指令时，将相对路径解析为绝对路径，方便进一步操作。
 export function resolvePath(basePath, relativePath) {
   const baseParts = basePath.split('/').slice(0, -1); // 获取 basePath 的目录部分
   const relativeParts = relativePath.split('/');
@@ -77,6 +88,8 @@ export class ASTHelper {
     this.includeNodes = this.getIncludeNodes();
   }
 
+  // 筛选出所有 include 节点。
+  // 将 include 的路径转换为绝对路径并存储。
   getIncludeNodes() {
     const includeNodes = this.filter(
       includeNodeFilter()
@@ -93,11 +106,13 @@ export class ASTHelper {
     });
   }
 
+  // 对 AST 的 body 节点数组应用给定的过滤函数，返回匹配的节点。
   filter = <fn extends filterFnType>(originalFn: fn) => {
     const result = this.ast.body.filter(originalFn) as GetReturnType<fn>[];
     return result;
   };
 
+  // 查找指定类型（targetTypeName）在 AST 中的所有引用。
   findReferences = (ast, targetTypeName: string) => {
     const references = [];
     for (let i = 0; i < ast.body.length; i++) {
@@ -136,6 +151,7 @@ export class ASTHelper {
     return references
   };
 
+  // 递归检查列表、映射等嵌套类型，查找目标类型节点。
   recurGetNode = (node: any, targetName: string) => {
     if (node.type === "Identifier" && node?.value === targetName) {
       return node;

@@ -191,6 +191,7 @@ connection.onDefinition(function (params) { return __awaiter(void 0, void 0, voi
 //   const suggestions = Array.prototype.concat.apply([], results);
 //   return suggestions;
 // });
+// 查找引用
 connection.onReferences(function (params) { return __awaiter(void 0, void 0, void 0, function () {
     var position, textDocument, fileRootPath, allUri, _a, word, preWord, document, limit, resultList, referenceList_1, err_2;
     return __generator(this, function (_b) {
@@ -261,6 +262,7 @@ connection.onReferences(function (params) { return __awaiter(void 0, void 0, voi
         }
     });
 }); });
+// 文档格式化
 connection.onDocumentFormatting(function (params) { return __awaiter(void 0, void 0, void 0, function () {
     var document, selectedText;
     return __generator(this, function (_a) {
@@ -270,7 +272,7 @@ connection.onDocumentFormatting(function (params) { return __awaiter(void 0, voi
                 return [4 /*yield*/, connection.sendRequest('customRequest/getSelectedText')];
             case 1:
                 selectedText = _a.sent();
-                console.log(123, selectedText);
+                console.log('光标所选文字', selectedText);
                 if (document) {
                     return [2 /*return*/, formatDocument(document)];
                 }
@@ -278,14 +280,17 @@ connection.onDocumentFormatting(function (params) { return __awaiter(void 0, voi
         }
     });
 }); });
+// 解析thrift文件
 function formatDocument(document) {
     var textEdits = [];
     var fullText = document.getText();
     var fullRange = vscode_languageserver_1.Range.create(document.positionAt(0), document.positionAt(fullText.length));
     var thrift = thrift_parser_ts_1.ThriftData.fromString(fullText);
+    console.log(thrift);
     var fmt = new thrift_fmt_ts_1.ThriftFormatter(thrift);
     fmt.option((0, thrift_fmt_ts_1.newOption)({ keepComment: true, alignByAssign: true }));
     var formattedText = fmt.format();
+    console.log(fmt, formattedText);
     textEdits.push(vscode_languageserver_1.TextEdit.replace(fullRange, formattedText));
     return textEdits;
 }
@@ -12416,6 +12421,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ASTHelper = exports.genZeroBasedNum = exports.includeNodeFilter = exports.wordNodeFilter = void 0;
 exports.resolvePath = resolvePath;
 var thrift_parse_1 = __webpack_require__(69);
+// 筛选出 AST 节点中 name.value 与给定单词 word 匹配的节点。
+// 查找 Thrift 中指定单词（如类型名、变量名）相关的 AST 节点。
 var wordNodeFilter = function (word) { return function (item, index) {
     if (item.type !== thrift_parse_1.SyntaxType.IncludeDefinition &&
         item.type !== thrift_parse_1.SyntaxType.CppIncludeDefinition &&
@@ -12424,14 +12431,22 @@ var wordNodeFilter = function (word) { return function (item, index) {
     }
 }; };
 exports.wordNodeFilter = wordNodeFilter;
+// 筛选出 Thrift 文件中所有的 include 语句节点。
+// 用于收集 Thrift 文件中的 include 依赖关系。
 var includeNodeFilter = function () { return function (item, index) {
     if (item.type === thrift_parse_1.SyntaxType.IncludeDefinition) {
         return item;
     }
 }; };
 exports.includeNodeFilter = includeNodeFilter;
+// 将一基的行号或位置转换为零基，方便与程序中的索引对齐。
+// AST 操作或文档操作时，通常需要零基索引。
 var genZeroBasedNum = function (num) { return num - 1; };
 exports.genZeroBasedNum = genZeroBasedNum;
+// 将相对路径解析为绝对路径。
+// 处理 .. 和 . 等相对路径符号。
+// 返回基于 basePath 计算出的完整路径。
+// 处理 Thrift 文件中的 include 指令时，将相对路径解析为绝对路径，方便进一步操作。
 function resolvePath(basePath, relativePath) {
     var baseParts = basePath.split('/').slice(0, -1); // 获取 basePath 的目录部分
     var relativeParts = relativePath.split('/');
@@ -12449,10 +12464,12 @@ function resolvePath(basePath, relativePath) {
 var ASTHelper = /** @class */ (function () {
     function ASTHelper(ast, document, filePath, documents) {
         var _this = this;
+        // 对 AST 的 body 节点数组应用给定的过滤函数，返回匹配的节点。
         this.filter = function (originalFn) {
             var result = _this.ast.body.filter(originalFn);
             return result;
         };
+        // 查找指定类型（targetTypeName）在 AST 中的所有引用。
         this.findReferences = function (ast, targetTypeName) {
             var references = [];
             for (var i = 0; i < ast.body.length; i++) {
@@ -12490,6 +12507,7 @@ var ASTHelper = /** @class */ (function () {
             }
             return references;
         };
+        // 递归检查列表、映射等嵌套类型，查找目标类型节点。
         this.recurGetNode = function (node, targetName) {
             if (node.type === "Identifier" && (node === null || node === void 0 ? void 0 : node.value) === targetName) {
                 return node;
@@ -12520,6 +12538,8 @@ var ASTHelper = /** @class */ (function () {
         this.filePath = filePath;
         this.includeNodes = this.getIncludeNodes();
     }
+    // 筛选出所有 include 节点。
+    // 将 include 的路径转换为绝对路径并存储。
     ASTHelper.prototype.getIncludeNodes = function () {
         var _this = this;
         var includeNodes = this.filter((0, exports.includeNodeFilter)());
